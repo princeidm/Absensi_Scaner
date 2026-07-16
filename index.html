@@ -45,11 +45,14 @@
     </div>
 
     <div class="flex border-b border-gray-100 mb-6 bg-gray-50 p-1 rounded-xl">
-      <button id="tab-scan" onclick="switchTab('scan')" class="w-1/2 py-2 text-sm font-medium rounded-lg text-blue-600 bg-white shadow-sm transition-all">
+      <button id="tab-scan" onclick="switchTab('scan')" class="w-1/3 py-2 text-xs font-medium rounded-lg text-blue-600 bg-white shadow-sm transition-all">
         Scan Absensi
       </button>
-      <button id="tab-register" onclick="switchTab('register')" class="w-1/2 py-2 text-sm font-medium rounded-lg text-gray-500 hover:text-gray-900 transition-all">
+      <button id="tab-register" onclick="switchTab('register')" class="w-1/3 py-2 text-xs font-medium rounded-lg text-gray-500 hover:text-gray-900 transition-all">
         Registrasi QR
+      </button>
+      <button id="tab-report" onclick="switchTab('report')" class="w-1/3 py-2 text-xs font-medium rounded-lg text-gray-500 hover:text-gray-900 transition-all">
+        Panel Admin
       </button>
     </div>
     
@@ -88,6 +91,15 @@
           Simpan / Unduh QR
         </a>
       </div>
+    </div>
+
+    <div id="content-report" class="hidden w-full flex-grow flex flex-col space-y-4 overflow-y-auto pr-1">
+      <div class="border-b border-gray-100 pb-2">
+        <h3 class="text-sm font-medium text-gray-700">Otomatisasi Laporan Kelompok</h3>
+        <p class="text-xs text-gray-400 mt-0.5">Filter data tidak hadir dan broadcast tindak lanjut via WA Web.</p>
+      </div>
+      <div id="report-list-container" class="space-y-4">
+        </div>
     </div>
 
   </div>
@@ -148,21 +160,110 @@
 
       const tabScanBtn = document.getElementById('tab-scan');
       const tabRegBtn = document.getElementById('tab-register');
+      const tabReportBtn = document.getElementById('tab-report');
+      
       const contentScan = document.getElementById('content-scan');
       const contentReg = document.getElementById('content-register');
+      const contentReport = document.getElementById('content-report');
+
+      const inactiveClass = "w-1/3 py-2 text-xs font-medium rounded-lg text-gray-500 hover:text-gray-900 transition-all";
+      const activeClass = "w-1/3 py-2 text-xs font-medium rounded-lg text-blue-600 bg-white shadow-sm transition-all";
+      
+      tabScanBtn.className = inactiveClass;
+      tabRegBtn.className = inactiveClass;
+      tabReportBtn.className = inactiveClass;
+      
+      contentScan.classList.add('hidden');
+      contentReg.classList.add('hidden');
+      contentReport.classList.add('hidden');
 
       if (tab === 'scan') {
-        tabScanBtn.className = "w-1/2 py-2 text-sm font-medium rounded-lg text-blue-600 bg-white shadow-sm transition-all";
-        tabRegBtn.className = "w-1/2 py-2 text-sm font-medium rounded-lg text-gray-500 hover:text-gray-900 transition-all";
+        tabScanBtn.className = activeClass;
         contentScan.classList.remove('hidden');
-        contentReg.classList.add('hidden');
         startScanner();
-      } else {
-        tabScanBtn.className = "w-1/2 py-2 text-sm font-medium rounded-lg text-gray-500 hover:text-gray-900 transition-all";
-        tabRegBtn.className = "w-1/2 py-2 text-sm font-medium rounded-lg text-blue-600 bg-white shadow-sm transition-all";
-        contentScan.classList.add('hidden');
+      } else if (tab === 'register') {
+        tabRegBtn.className = activeClass;
         contentReg.classList.remove('hidden');
         stopScanner(); 
+      } else if (tab === 'report') {
+        tabReportBtn.className = activeClass;
+        contentReport.classList.remove('hidden');
+        stopScanner();
+        loadAttendanceSummary();
+      }
+    }
+
+    async function loadAttendanceSummary() {
+      const container = document.getElementById('report-list-container');
+      container.innerHTML = '<div class="text-center py-8 text-gray-400 text-xs">Menganalisis absensi & menyusun draf...</div>';
+      
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'getSummary' })
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+          container.innerHTML = '';
+          const summary = result.summary;
+          const date = result.date;
+          
+          if (Object.keys(summary).length === 0) {
+            container.innerHTML = '<div class="text-center py-8 text-gray-400 text-xs">Belum ada data member dalam sistem database.</div>';
+            return;
+          }
+          
+          for (const kelompok in summary) {
+            const data = summary[kelompok];
+            
+            // OTOMATISASI TEMPLATE WHATSAPP
+            let waText = `*LAPORAN ABSENSI GENERUS*\n`;
+            waText += `*Hari/Tanggal:* ${date}\n`;
+            waText += `*Kelompok:* ${kelompok}\n\n`;
+            
+            waText += `❌ *BELUM HADIR (${data.belumHadir.length}):*\n`;
+            if (data.belumHadir.length === 0) waText += `- Nihil (Semua Anggota Hadir)\n`;
+            else data.belumHadir.forEach((nama, i) => { waText += `${i + 1}. ${nama}\n`; });
+            
+            waText += `\n⚠️ *TERLAMBAT (${data.terlambat.length}):*\n`;
+            if (data.terlambat.length === 0) waText += `- Nihil\n`;
+            // Teks nama di sini otomatis sudah membawa label durasi menit dari server backend
+            else data.terlambat.forEach((nama, i) => { waText += `${i + 1}. ${nama}\n`; });
+            
+            waText += `\nDimohon kepada ketua kelompok / pembina terkait untuk segera menindaklanjuti. Terima kasih.`;
+            
+            const waLink = `https://api.whatsapp.com/send?text=${encodeURIComponent(waText)}`;
+            
+            const card = document.createElement('div');
+            card.className = "border border-gray-100 rounded-xl p-4 bg-gray-50 space-y-3 shadow-sm";
+            
+            card.innerHTML = `
+              <div class="flex justify-between items-center border-b border-gray-200 pb-2">
+                <h4 class="font-semibold text-gray-900 text-sm">${kelompok}</h4>
+                <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">Hadir: ${data.tepatWaktu.length + data.terlambat.length}</span>
+              </div>
+              <div class="space-y-2 text-xs">
+                <div>
+                  <span class="font-medium text-red-600 block mb-0.5">❌ Belum Hadir (${data.belumHadir.length})</span>
+                  <p class="text-gray-600">${data.belumHadir.length > 0 ? data.belumHadir.join(', ') : '<span class="text-gray-400 italic text-[11px]">Nihil</span>'}</p>
+                </div>
+                <div>
+                  <span class="font-medium text-amber-600 block mb-0.5">⚠️ Terlambat (${data.terlambat.length})</span>
+                  <p class="text-gray-600">${data.terlambat.length > 0 ? data.terlambat.join(', ') : '<span class="text-gray-400 italic text-[11px]">Nihil</span>'}</p>
+                </div>
+              </div>
+              <a href="${waLink}" target="_blank" class="w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-xl text-xs transition-colors shadow-sm block mt-2">
+                Kirim Laporan via WA
+              </a>
+            `;
+            container.appendChild(card);
+          }
+        } else {
+          container.innerHTML = `<div class="text-center py-8 text-red-500 text-xs">Gagal: ${result.message}</div>`;
+        }
+      } catch (error) {
+        container.innerHTML = '<div class="text-center py-8 text-red-500 text-xs">Gagal memproses jaringan API server.</div>';
       }
     }
 
@@ -256,7 +357,9 @@
           const result = await response.json();
 
           if (result.success) {
-            const isTelat = result.status === "Terlambat";
+            // PENYESUAIAN INDEKS STRING MATCHING: Mendukung teks kelipatan menit dinamis
+            const isTelat = result.status.includes("Terlambat");
+            
             Swal.fire({
               icon: isTelat ? 'warning' : 'success',
               title: isTelat ? 'Absen Terlambat!' : 'Berhasil Absen!',

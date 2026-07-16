@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Absensi Scanner Cepat</title>
+  <title>Absensi & Registrasi QR</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -19,35 +19,77 @@
   <div id="login-section" class="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-6">
     <div class="text-center">
       <h2 class="text-2xl font-semibold text-gray-900">Admin Login</h2>
-      <p class="text-sm text-gray-500 mt-1">Sistem Absensi Cepat</p>
+      <p class="text-sm text-gray-500 mt-1">Sistem Absensi & Registrasi Cepat</p>
     </div>
     
     <div class="space-y-4">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Nomor WhatsApp</label>
-        <input type="number" id="wa-number" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none">
+        <input type="number" id="wa-number" placeholder="Contoh: 08123456789" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all">
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Kode Masuk</label>
-        <input type="password" id="login-code" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none">
+        <input type="password" id="login-code" placeholder="Masukkan 6 digit kode" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all">
       </div>
-      <button onclick="handleLogin()" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl">
+      <button onclick="handleLogin()" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl transition-colors">
         Masuk Akses
       </button>
     </div>
   </div>
 
-  <div id="dashboard-section" class="hidden w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col items-center h-full max-h-[700px]">
-    <div class="w-full flex justify-between items-center mb-6">
-      <h2 class="text-xl font-semibold text-gray-900">Live Scan</h2>
+  <div id="dashboard-section" class="hidden w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col h-full max-h-[720px]">
+    
+    <div class="w-full flex justify-between items-center mb-4">
+      <h2 class="text-xl font-semibold text-gray-900">Dashboard</h2>
       <button onclick="logout()" class="text-sm text-red-500 hover:text-red-700 font-medium">Keluar</button>
     </div>
-    
-    <div id="reader-container" class="w-full relative flex-grow flex items-center justify-center">
-      <div id="reader"></div>
+
+    <div class="flex border-b border-gray-100 mb-6 bg-gray-50 p-1 rounded-xl">
+      <button id="tab-scan" onclick="switchTab('scan')" class="w-1/2 py-2 text-sm font-medium rounded-lg text-blue-600 bg-white shadow-sm transition-all">
+        Scan Absensi
+      </button>
+      <button id="tab-register" onclick="switchTab('register')" class="w-1/2 py-2 text-sm font-medium rounded-lg text-gray-500 hover:text-gray-900 transition-all">
+        Registrasi QR
+      </button>
     </div>
     
-    <p class="text-sm text-gray-500 text-center mt-6">Arahkan kamera ke QR Code. Sistem akan memindai otomatis.</p>
+    <div id="content-scan" class="w-full flex-grow flex flex-col items-center">
+      <div id="reader-container" class="w-full relative flex-grow flex items-center justify-center min-h-[260px]">
+        <div id="reader"></div>
+      </div>
+      <p class="text-xs text-gray-400 text-center mt-4">Arahkan kamera HP ke QR Code peserta untuk mencatat kehadiran secara instan.</p>
+    </div>
+
+    <div id="content-register" class="hidden w-full flex-grow flex flex-col space-y-4 overflow-y-auto">
+      <div class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
+          <input type="text" id="reg-nama" placeholder="Masukkan nama peserta" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Kelompok / Divisi</label>
+          <input type="text" id="reg-kelompok" placeholder="Contoh: Kelompok A / Panitia" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm">
+        </div>
+        <button onclick="handleRegister()" id="btn-register" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-xl text-sm transition-colors shadow-sm">
+          Buat QR Code
+        </button>
+      </div>
+
+      <div id="qr-result-container" class="hidden border border-gray-100 rounded-xl p-4 bg-gray-50 flex flex-col items-center text-center space-y-3">
+        <p class="text-xs font-semibold text-green-600 bg-green-50 px-3 py-1 rounded-full">Pendaftaran Berhasil!</p>
+        <div class="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
+          <img id="qr-image" src="" alt="QR Code" class="w-40 h-40">
+        </div>
+        <div>
+          <h4 id="result-nama" class="font-semibold text-gray-900 text-sm"></h4>
+          <p id="result-kode" class="text-xs text-gray-500"></p>
+        </div>
+        <a id="btn-download-qr" href="#" download="QRCode.png" target="_blank" class="text-xs bg-white text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 shadow-sm inline-block">
+          Simpan / Unduh QR
+        </a>
+      </div>
+    </div>
+
   </div>
 
   <script>
@@ -55,142 +97,180 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbwSd6T2k5kw2o-YZEPz86vJgi_yhgWrL6Tl1O8hkMFBLcIqR_CySbtKvvpduQvcp2v_/exec"; 
     
     let html5QrcodeScanner;
-  let isScanning = false;
+    let isScanning = false;
+    let currentTab = 'scan';
 
-  async function handleLogin() {
-    const wa = document.getElementById('wa-number').value;
-    const code = document.getElementById('login-code').value;
-    const btn = document.getElementById('btn-login');
+    async function handleLogin() {
+      const wa = document.getElementById('wa-number').value;
+      const code = document.getElementById('login-code').value;
+      const btn = document.getElementById('btn-login');
 
-    if (!wa || !code) return Swal.fire({ icon: 'warning', text: 'Data tidak boleh kosong!' });
+      if (!wa || !code) return Swal.fire({ icon: 'warning', text: 'Data tidak boleh kosong!' });
+      btn.innerText = 'Memverifikasi...';
+      btn.disabled = true;
 
-    btn.innerText = 'Memverifikasi...';
-    btn.disabled = true;
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'login', wa: wa, kode: code })
+        });
+        const result = await response.json();
 
-    try {
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'login', wa: wa, kode: code })
-      });
-      const result = await response.json();
+        if (result.success) {
+          document.getElementById('login-section').classList.add('hidden');
+          document.getElementById('dashboard-section').classList.remove('hidden');
+          startScanner(); // Mulai scanner otomatis saat masuk
+        } else {
+          Swal.fire({ icon: 'error', title: 'Gagal', text: result.message });
+        }
+      } catch (error) {
+        Swal.fire({ icon: 'error', title: 'Network Error', text: 'Gagal terhubung ke database.' });
+      } finally {
+        btn.innerText = 'Masuk Akses';
+        btn.disabled = false;
+      }
+    }
 
-      if (result.success) {
-        document.getElementById('login-section').classList.add('hidden');
-        document.getElementById('dashboard-section').classList.remove('hidden');
+    // Fungsi Navigasi Tab Menu
+    function switchTab(tab) {
+      if (currentTab === tab) return;
+      currentTab = tab;
+
+      const tabScanBtn = document.getElementById('tab-scan');
+      const tabRegBtn = document.getElementById('tab-register');
+      const contentScan = document.getElementById('content-scan');
+      const contentReg = document.getElementById('content-register');
+
+      if (tab === 'scan') {
+        // Aktifkan Tab Scan
+        tabScanBtn.className = "w-1/2 py-2 text-sm font-medium rounded-lg text-blue-600 bg-white shadow-sm transition-all";
+        tabRegBtn.className = "w-1/2 py-2 text-sm font-medium rounded-lg text-gray-500 hover:text-gray-900 transition-all";
+        contentScan.classList.remove('hidden');
+        contentReg.classList.add('hidden');
         startScanner();
       } else {
-        Swal.fire({ icon: 'error', title: 'Gagal', text: result.message });
+        // Aktifkan Tab Registrasi
+        tabScanBtn.className = "w-1/2 py-2 text-sm font-medium rounded-lg text-gray-500 hover:text-gray-900 transition-all";
+        tabRegBtn.className = "w-1/2 py-2 text-sm font-medium rounded-lg text-blue-600 bg-white shadow-sm transition-all";
+        contentScan.classList.add('hidden');
+        contentReg.classList.remove('hidden');
+        stopScanner(); // Matikan kamera agar hemat baterai saat input data
       }
-    } catch (error) {
-      Swal.fire({ icon: 'error', title: 'Network Error', text: 'Gagal terhubung ke database.' });
-    } finally {
-      btn.innerText = 'Masuk Akses';
-      btn.disabled = false;
     }
-  }
 
-  // FUNGSI BARU: Jauh lebih stabil untuk HP modern dengan banyak kamera
-  function startScanner() {
-    if (isScanning) return;
+    // Fungsi Logika Pendaftaran Member Baru
+    async function handleRegister() {
+      const nama = document.getElementById('reg-nama').value;
+      const kelompok = document.getElementById('reg-kelompok').value;
+      const btn = document.getElementById('btn-register');
 
-    Swal.fire({
-      title: 'Menginisialisasi Kamera...',
-      allowOutsideClick: false,
-      didOpen: () => { Swal.showLoading(); }
-    });
-
-    // Langkah 1: Minta daftar semua kamera yang ada di HP
-    Html5Qrcode.getCameras().then(devices => {
-      Swal.close();
-      if (devices && devices.length > 0) {
-        // Logika memilih kamera belakang yang tepat
-        let backCamera = devices.find(device => device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('belakang') || device.label.toLowerCase().includes('environment'));
-        
-        // Jika label tidak jelas, pilih kamera terakhir dalam daftar (biasanya kamera belakang utama)
-        let cameraId = backCamera ? backCamera.id : devices[devices.length - 1].id;
-
-        html5QrcodeScanner = new Html5Qrcode("reader");
-        const config = { 
-          fps: 15, 
-          qrbox: { width: 250, height: 250 }, 
-          aspectRatio: 1.0 
-        };
-
-        // Langkah 2: Jalankan scanner menggunakan ID Kamera yang spesifik
-        html5QrcodeScanner.start(cameraId, config, onScanSuccess)
-          .then(() => { isScanning = true; })
-          .catch(err => {
-            // Jika gagal karena masalah spesifik kamera, coba mode fallback (kamera standar)
-            fallbackScanner(config);
-          });
-      } else {
-        Swal.fire({ icon: 'error', title: 'Kamera Tidak Ditemukan', text: 'Perangkat ini tidak memiliki kamera aktif.' });
+      if (!nama || !kelompok) {
+        return Swal.fire({ icon: 'warning', text: 'Nama dan Kelompok wajib diisi!' });
       }
-    }).catch(err => {
-      Swal.close();
-      // Jika langkah pertama diblokir total oleh browser
-      Swal.fire({ 
-        icon: 'error', 
-        title: 'Izin Ditolak Browser', 
-        text: 'Pastikan URL dimulai dengan HTTPS dan Anda memilih "Izinkan" saat browser meminta akses kamera.' 
-      });
-    });
-  }
 
-  // Fungsi Fallback jika penyeleksian ID Kamera gagal
-  function fallbackScanner(config) {
-    html5QrcodeScanner.start({ facingMode: "environment" }, config, onScanSuccess)
-      .then(() => { isScanning = true; })
-      .catch(err => {
-        Swal.fire({ icon: 'error', title: 'Akses Kamera Gagal', text: 'Browser memblokir live streaming video.' });
-      });
-  }
+      btn.innerText = 'Membuat Data...';
+      btn.disabled = true;
 
-  async function onScanSuccess(decodedText, decodedResult) {
-    if (html5QrcodeScanner.isScanning) {
-      html5QrcodeScanner.pause(true); // Jeda pemindaian agar tidak terkirim ganda
-    }
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'register', nama: nama, kelompok: kelompok })
+        });
+        const result = await response.json();
 
-    Swal.fire({ title: 'Mencatat...', showConfirmButton: false, timer: 800, didOpen: () => { Swal.showLoading(); } });
+        if (result.success) {
+          // Membuat URL gambar QR menggunakan generator API gratis & stabil
+          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(result.qrCode)}`;
+          
+          // Tampilkan container hasil
+          document.getElementById('qr-result-container').classList.remove('hidden');
+          document.getElementById('qr-image').src = qrUrl;
+          document.getElementById('result-nama').innerText = result.nama;
+          document.getElementById('result-kode').innerText = `ID: ${result.qrCode} (${result.kelompok})`;
+          
+          // Konfigurasi tombol download link
+          document.getElementById('btn-download-qr').href = qrUrl;
 
-    try {
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'scan', qrCode: decodedText })
-      });
-      const result = await response.json();
+          // Reset Form Input
+          document.getElementById('reg-nama').value = '';
+          document.getElementById('reg-kelompok').value = '';
 
-      if (result.success) {
-        Swal.fire({
-          icon: 'success',
-          title: 'Berhasil Absen!',
-          html: `<h3 class="text-xl font-bold text-gray-900">${result.nama}</h3><p class="text-gray-500 mt-1">${result.kelompok}</p>`,
-          timer: 2000,
-          showConfirmButton: false
-        }).then(() => resumeScanner());
-      } else {
-        Swal.fire({ icon: 'error', title: 'Ditolak', text: result.message, timer: 2000, showConfirmButton: false })
-          .then(() => resumeScanner());
+          Swal.fire({ icon: 'success', title: 'QR Dibuat!', text: 'Data berhasil disimpan.', timer: 1500, showConfirmButton: false });
+        } else {
+          Swal.fire({ icon: 'error', title: 'Gagal Menyimpan', text: result.message });
+        }
+      } catch (error) {
+        Swal.fire({ icon: 'error', title: 'Koneksi Gagal', text: 'Gagal menghubungi server API.' });
+      } finally {
+        btn.innerText = 'Buat QR Code';
+        btn.disabled = false;
       }
-    } catch (error) {
-      resumeScanner();
     }
-  }
 
-  function resumeScanner() {
-    if (html5QrcodeScanner && html5QrcodeScanner.isScanning) html5QrcodeScanner.resume();
-  }
+    // ===== LOGIKA DUA ARAH SCANNER (DARI KODE SEBELUMNYA) =====
+    function startScanner() {
+      if (isScanning) return;
+      Html5Qrcode.getCameras().then(devices => {
+        if (devices && devices.length > 0) {
+          let backCamera = devices.find(device => device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('belakang') || device.label.toLowerCase().includes('environment'));
+          let cameraId = backCamera ? backCamera.id : devices[devices.length - 1].id;
 
-  function logout() {
-    if (html5QrcodeScanner && isScanning) {
-      html5QrcodeScanner.stop().then(() => {
-        isScanning = false;
-      });
+          html5QrcodeScanner = new Html5Qrcode("reader");
+          const config = { fps: 15, qrbox: { width: 230, height: 230 }, aspectRatio: 1.0 };
+
+          html5QrcodeScanner.start(cameraId, config, onScanSuccess)
+            .then(() => { isScanning = true; })
+            .catch(err => { fallbackScanner(config); });
+        }
+      }).catch(err => { console.error("Kamera diblokir browser"); });
     }
-    document.getElementById('dashboard-section').classList.add('hidden');
-    document.getElementById('login-section').classList.remove('hidden');
-  }
-</script>
+
+    function fallbackScanner(config) {
+      html5QrcodeScanner.start({ facingMode: "environment" }, config, onScanSuccess)
+        .then(() => { isScanning = true; });
+    }
+
+    function stopScanner() {
+      if (html5QrcodeScanner && isScanning) {
+        html5QrcodeScanner.stop().then(() => { isScanning = false; });
+      }
+    }
+
+    async function onScanSuccess(decodedText, decodedResult) {
+      if (html5QrcodeScanner.isScanning) html5QrcodeScanner.pause(true);
+      Swal.fire({ title: 'Mencatat...', showConfirmButton: false, timer: 600, didOpen: () => { Swal.showLoading(); } });
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'scan', qrCode: decodedText })
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil Absen!',
+            html: `<h3 class="text-xl font-bold text-gray-900">${result.nama}</h3><p class="text-gray-500 mt-1">${result.kelompok}</p>`,
+            timer: 2000,
+            showConfirmButton: false
+          }).then(() => resumeScanner());
+        } else {
+          Swal.fire({ icon: 'error', title: 'Ditolak', text: result.message, timer: 2000, showConfirmButton: false }).then(() => resumeScanner());
+        }
+      } catch (error) { resumeScanner(); }
+    }
+
+    function resumeScanner() {
+      if (html5QrcodeScanner && html5QrcodeScanner.isScanning) html5QrcodeScanner.resume();
+    }
+
+    function logout() {
+      stopScanner();
+      document.getElementById('dashboard-section').classList.add('hidden');
+      document.getElementById('login-section').classList.remove('hidden');
+      document.getElementById('qr-result-container').classList.add('hidden');
+    }
   </script>
 </body>
 </html>

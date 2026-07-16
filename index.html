@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Absensi & Registrasi QR</title>
+  <title>Absen scanner Generus</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -19,7 +19,7 @@
   <div id="login-section" class="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-6">
     <div class="text-center">
       <h2 class="text-2xl font-semibold text-gray-900">Admin Login</h2>
-      <p class="text-sm text-gray-500 mt-1">Sistem Absensi & Registrasi Cepat</p>
+      <p class="text-sm text-gray-500 mt-1">Sistem Absensi Generus Tasikmalaya</p>
     </div>
     
     <div class="space-y-4">
@@ -57,7 +57,7 @@
       <div id="reader-container" class="w-full relative flex-grow flex items-center justify-center min-h-[260px]">
         <div id="reader"></div>
       </div>
-      <p class="text-xs text-gray-400 text-center mt-4">Arahkan kamera HP ke QR Code peserta untuk mencatat kehadiran secara instan.</p>
+      <p class="text-xs text-gray-400 text-center mt-4">Pindai QR Code. Sistem melacak koordinat GPS dan ketepatan waktu otomatis secara real-time.</p>
     </div>
 
     <div id="content-register" class="hidden w-full flex-grow flex flex-col space-y-4 overflow-y-auto">
@@ -68,7 +68,7 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Kelompok / Divisi</label>
-          <input type="text" id="reg-kelompok" placeholder="Contoh: Kelompok A / Panitia" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm">
+          <input type="text" id="reg-kelompok" placeholder="Contoh: Kelompok A" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm">
         </div>
         <button onclick="handleRegister()" id="btn-register" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-xl text-sm transition-colors shadow-sm">
           Buat QR Code
@@ -119,7 +119,7 @@
         if (result.success) {
           document.getElementById('login-section').classList.add('hidden');
           document.getElementById('dashboard-section').classList.remove('hidden');
-          startScanner(); // Mulai scanner otomatis saat masuk
+          startScanner(); 
         } else {
           Swal.fire({ icon: 'error', title: 'Gagal', text: result.message });
         }
@@ -131,7 +131,6 @@
       }
     }
 
-    // Fungsi Navigasi Tab Menu
     function switchTab(tab) {
       if (currentTab === tab) return;
       currentTab = tab;
@@ -142,32 +141,26 @@
       const contentReg = document.getElementById('content-register');
 
       if (tab === 'scan') {
-        // Aktifkan Tab Scan
         tabScanBtn.className = "w-1/2 py-2 text-sm font-medium rounded-lg text-blue-600 bg-white shadow-sm transition-all";
         tabRegBtn.className = "w-1/2 py-2 text-sm font-medium rounded-lg text-gray-500 hover:text-gray-900 transition-all";
         contentScan.classList.remove('hidden');
         contentReg.classList.add('hidden');
         startScanner();
       } else {
-        // Aktifkan Tab Registrasi
         tabScanBtn.className = "w-1/2 py-2 text-sm font-medium rounded-lg text-gray-500 hover:text-gray-900 transition-all";
         tabRegBtn.className = "w-1/2 py-2 text-sm font-medium rounded-lg text-blue-600 bg-white shadow-sm transition-all";
         contentScan.classList.add('hidden');
         contentReg.classList.remove('hidden');
-        stopScanner(); // Matikan kamera agar hemat baterai saat input data
+        stopScanner(); 
       }
     }
 
-    // Fungsi Logika Pendaftaran Member Baru
     async function handleRegister() {
       const nama = document.getElementById('reg-nama').value;
       const kelompok = document.getElementById('reg-kelompok').value;
       const btn = document.getElementById('btn-register');
 
-      if (!nama || !kelompok) {
-        return Swal.fire({ icon: 'warning', text: 'Nama dan Kelompok wajib diisi!' });
-      }
-
+      if (!nama || !kelompok) return Swal.fire({ icon: 'warning', text: 'Nama dan Kelompok wajib diisi!' });
       btn.innerText = 'Membuat Data...';
       btn.disabled = true;
 
@@ -179,35 +172,27 @@
         const result = await response.json();
 
         if (result.success) {
-          // Membuat URL gambar QR menggunakan generator API gratis & stabil
           const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(result.qrCode)}`;
-          
-          // Tampilkan container hasil
           document.getElementById('qr-result-container').classList.remove('hidden');
           document.getElementById('qr-image').src = qrUrl;
           document.getElementById('result-nama').innerText = result.nama;
           document.getElementById('result-kode').innerText = `ID: ${result.qrCode} (${result.kelompok})`;
-          
-          // Konfigurasi tombol download link
           document.getElementById('btn-download-qr').href = qrUrl;
 
-          // Reset Form Input
           document.getElementById('reg-nama').value = '';
           document.getElementById('reg-kelompok').value = '';
-
-          Swal.fire({ icon: 'success', title: 'QR Dibuat!', text: 'Data berhasil disimpan.', timer: 1500, showConfirmButton: false });
+          Swal.fire({ icon: 'success', title: 'QR Dibuat!', text: 'Data tersimpan.', timer: 1500, showConfirmButton: false });
         } else {
-          Swal.fire({ icon: 'error', title: 'Gagal Menyimpan', text: result.message });
+          Swal.fire({ icon: 'error', title: 'Gagal', text: result.message });
         }
       } catch (error) {
-        Swal.fire({ icon: 'error', title: 'Koneksi Gagal', text: 'Gagal menghubungi server API.' });
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Gagal terhubung ke server API.' });
       } finally {
         btn.innerText = 'Buat QR Code';
         btn.disabled = false;
       }
     }
 
-    // ===== LOGIKA DUA ARAH SCANNER (DARI KODE SEBELUMNYA) =====
     function startScanner() {
       if (isScanning) return;
       Html5Qrcode.getCameras().then(devices => {
@@ -222,12 +207,11 @@
             .then(() => { isScanning = true; })
             .catch(err => { fallbackScanner(config); });
         }
-      }).catch(err => { console.error("Kamera diblokir browser"); });
+      }).catch(err => { console.error("Kamera diblokir"); });
     }
 
     function fallbackScanner(config) {
-      html5QrcodeScanner.start({ facingMode: "environment" }, config, onScanSuccess)
-        .then(() => { isScanning = true; });
+      html5QrcodeScanner.start({ facingMode: "environment" }, config, onScanSuccess).then(() => { isScanning = true; });
     }
 
     function stopScanner() {
@@ -236,29 +220,65 @@
       }
     }
 
+    // INTERSEPSI BARU: Penguncian Koordinat GPS saat Scan Berhasil
     async function onScanSuccess(decodedText, decodedResult) {
       if (html5QrcodeScanner.isScanning) html5QrcodeScanner.pause(true);
-      Swal.fire({ title: 'Mencatat...', showConfirmButton: false, timer: 600, didOpen: () => { Swal.showLoading(); } });
+      
+      Swal.fire({ 
+        title: 'Mengunci Koordinat...', 
+        text: 'Memverifikasi GPS perangkat scanner',
+        showConfirmButton: false, 
+        allowOutsideClick: false, 
+        didOpen: () => { Swal.showLoading(); } 
+      });
 
-      try {
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          body: JSON.stringify({ action: 'scan', qrCode: decodedText })
-        });
-        const result = await response.json();
+      // Memanggil fungsi Geolocation internal bawaan browser HP
+      navigator.geolocation.getCurrentPosition(
+        async function(position) {
+          const currentLat = position.coords.latitude;
+          const currentLng = position.coords.longitude;
 
-        if (result.success) {
-          Swal.fire({
-            icon: 'success',
-            title: 'Berhasil Absen!',
-            html: `<h3 class="text-xl font-bold text-gray-900">${result.nama}</h3><p class="text-gray-500 mt-1">${result.kelompok}</p>`,
-            timer: 2000,
-            showConfirmButton: false
-          }).then(() => resumeScanner());
-        } else {
-          Swal.fire({ icon: 'error', title: 'Ditolak', text: result.message, timer: 2000, showConfirmButton: false }).then(() => resumeScanner());
-        }
-      } catch (error) { resumeScanner(); }
+          Swal.fire({ title: 'Memproses Kehadiran...', showConfirmButton: false, timer: 600, didOpen: () => { Swal.showLoading(); } });
+
+          try {
+            const response = await fetch(API_URL, {
+              method: 'POST',
+              body: JSON.stringify({ 
+                action: 'scan', 
+                qrCode: decodedText,
+                lat: currentLat,
+                lng: currentLng
+              })
+            });
+            const result = await response.json();
+
+            if (result.success) {
+              const isTelat = result.status === "Terlambat";
+              Swal.fire({
+                icon: isTelat ? 'warning' : 'success',
+                title: isTelat ? 'Absen Terlambat!' : 'Berhasil Absen!',
+                html: `<h3 class="text-xl font-bold text-gray-900">${result.nama}</h3>
+                       <p class="text-gray-500 mt-1">${result.kelompok}</p>
+                       <span class="inline-block mt-3 px-3 py-1 text-xs font-semibold rounded-full ${isTelat ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">${result.status}</span>`,
+                timer: 3000,
+                showConfirmButton: false
+              }).then(() => resumeScanner());
+            } else {
+              Swal.fire({ icon: 'error', title: 'Akses Ditolak', text: result.message, timer: 3500, showConfirmButton: false }).then(() => resumeScanner());
+            }
+          } catch (error) { 
+            Swal.fire({ icon: 'error', title: 'Koneksi Gagal', text: 'Jaringan backend terputus.' }).then(() => resumeScanner());
+          }
+        },
+        function(error) {
+          let msg = "Aplikasi memerlukan GPS aktif untuk memvalidasi lokasi.";
+          if (error.code === error.PERMISSION_DENIED) {
+            msg = "Izin lokasi diblokir situs. Harap aktifkan izin lokasi situs pada pengaturan browser Anda.";
+          }
+          Swal.fire({ icon: 'error', title: 'GPS Diperlukan', text: msg }).then(() => resumeScanner());
+        },
+        { enableHighAccuracy: true, timeout: 6000 } // Mengunci akurasi GPS terbaik
+      );
     }
 
     function resumeScanner() {

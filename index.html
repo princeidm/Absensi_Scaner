@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Absensi Scanner Cepat & Track Lokasi</title>
+  <title>Absensi Scanner Cepat & Persistent Session</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -19,7 +19,7 @@
   <div id="login-section" class="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-6">
     <div class="text-center">
       <h2 class="text-2xl font-semibold text-gray-900">Admin Login</h2>
-      <p class="text-sm text-gray-500 mt-1">Sistem Absensi dengan Logging Posisi GPS</p>
+      <p class="text-sm text-gray-500 mt-1">Sistem Absensi Anti Login Ulang Saat Refresh</p>
     </div>
     
     <div class="space-y-4">
@@ -94,11 +94,22 @@
 
   <script>
     // ===== MASUKKAN URL DEPLOYMENT APPS SCRIPT ANDA DI SINI =====
-    const API_URL = "https://script.google.com/macros/s/AKfycb.../exec"; 
+    const API_URL = "https://script.google.com/macros/s/AKfycbyOo9ED4kZveeJUNpy6rvqvMWDf7iifnsq4FLt31HMw9w-SkoYGUTQ8Ko5cOJcNuXLB/exec"; 
     
     let html5QrcodeScanner;
     let isScanning = false;
     let currentTab = 'scan';
+
+    // FITUR BARU: Otomatis memeriksa sesi login aktif saat halaman dimuat (Refresh Protection)
+    window.onload = function() {
+      const sessionActive = localStorage.getItem("admin_session_active");
+      if (sessionActive === "true") {
+        // Jika sesi ada, bypass login langsung tampilkan dashboard
+        document.getElementById('login-section').classList.add('hidden');
+        document.getElementById('dashboard-section').classList.remove('hidden');
+        startScanner();
+      }
+    };
 
     async function handleLogin() {
       const wa = document.getElementById('wa-number').value;
@@ -117,6 +128,9 @@
         const result = await response.json();
 
         if (result.success) {
+          // PENYESUAIAN FITUR: Simpan status login sukses ke browser local storage
+          localStorage.setItem("admin_session_active", "true");
+
           document.getElementById('login-section').classList.add('hidden');
           document.getElementById('dashboard-section').classList.remove('hidden');
           startScanner(); 
@@ -220,7 +234,6 @@
       }
     }
 
-    // PEMBARUAN UTAMA: Dibuat non-blocking (selalu sukses absen walau GPS kurang baik)
     async function onScanSuccess(decodedText, decodedResult) {
       if (html5QrcodeScanner.isScanning) html5QrcodeScanner.pause(true);
       
@@ -232,7 +245,6 @@
         didOpen: () => { Swal.showLoading(); } 
       });
 
-      // Fungsi modular untuk mengirimkan data ke database GAS
       async function sendDataToBackend(latitude, longitude) {
         try {
           const response = await fetch(API_URL, {
@@ -265,16 +277,14 @@
         }
       }
 
-      // Coba akses GPS. Jika sukses kirim koordinat, jika lambat/mati kirim log teks tanpa memblokir absensi
       navigator.geolocation.getCurrentPosition(
         function(position) {
           sendDataToBackend(position.coords.latitude, position.coords.longitude);
         },
         function(error) {
-          // Fallback: Absen tetap dicatat di spreadsheet dengan keterangan lokasi tidak aktif
           sendDataToBackend("GPS Off / Lemah", "GPS Off / Lemah");
         },
-        { enableHighAccuracy: false, timeout: 3000 } // Kecepatan pelacakan diutamakan agar tidak mengantre
+        { enableHighAccuracy: false, timeout: 3000 } 
       );
     }
 
@@ -283,10 +293,15 @@
     }
 
     function logout() {
+      // PENYESUAIAN FITUR: Hapus sesi dari browser saat Admin secara sadar menekan keluar
+      localStorage.removeItem("admin_session_active");
+
       stopScanner();
       document.getElementById('dashboard-section').classList.add('hidden');
       document.getElementById('login-section').classList.remove('hidden');
       document.getElementById('qr-result-container').classList.add('hidden');
+      document.getElementById('wa-number').value = '';
+      document.getElementById('login-code').value = '';
     }
   </script>
 </body>

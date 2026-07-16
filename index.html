@@ -105,14 +105,12 @@
   </div>
 
   <script>
-    // ===== MASUKKAN URL WEB APP APPS SCRIPT ANDA DI BAWAH INI =====
     const API_URL = "https://script.google.com/macros/s/AKfycbydvBjyc4t3VFVKqeSg_i622-qm6zuLiPz2oPr14qPKLpmwrHMwCbO_LRrxvSlV9FVF/exec"; 
     
     let html5QrcodeScanner;
     let isScanning = false;
     let currentTab = 'scan';
 
-    // Anti-Refresh Session Protection
     window.onload = function() {
       const sessionActive = localStorage.getItem("admin_session_active");
       if (sessionActive === "true") {
@@ -193,6 +191,7 @@
       }
     }
 
+    // MODIFIKASI UTAMA: Penyesuaian string builder template pesan WA sesuai request
     async function loadAttendanceSummary() {
       const container = document.getElementById('report-list-container');
       container.innerHTML = '<div class="text-center py-8 text-gray-400 text-xs">Menganalisis absensi & menyusun draf...</div>';
@@ -207,33 +206,40 @@
         if (result.success) {
           container.innerHTML = '';
           const summary = result.summary;
-          const date = result.date;
           
           if (Object.keys(summary).length === 0) {
-            container.innerHTML = '<div class="text-center py-8 text-gray-400 text-xs">Belum ada data member dalam sistem database.</div>';
+            container.innerHTML = '<div class="text-center py-8 text-gray-400 text-xs">Belum ada data member dalam database.</div>';
             return;
           }
           
           for (const kelompok in summary) {
             const data = summary[kelompok];
+            const leaderPhone = data.leaderPhone || "";
             
-            // OTOMATISASI TEMPLATE WHATSAPP
-            let waText = `*LAPORAN ABSENSI GENERUS*\n`;
-            waText += `*Hari/Tanggal:* ${date}\n`;
-            waText += `*Kelompok:* ${kelompok}\n\n`;
+            // 1. DRAF STRUKTUR PESAN KHUSUS SESUAI PERMINTAAN USER
+            let waText = `Assalamu'alaikum warahmatullahi wabarokatuh,\n\n`;
+            waText += `Demikian Bapak Ketua Kelompok yang kami hormati, Generus Kelompok ${kelompok} yang belum menghadiri Amrin Jami' pada hari ini:\n`;
             
-            waText += `❌ *BELUM HADIR (${data.belumHadir.length}):*\n`;
-            if (data.belumHadir.length === 0) waText += `- Nihil (Semua Anggota Hadir)\n`;
-            else data.belumHadir.forEach((nama, i) => { waText += `${i + 1}. ${nama}\n`; });
+            if (data.belumHadir.length === 0) {
+              waText += `- Nihil (Semua Anggota Hadir)\n`;
+            } else {
+              data.belumHadir.forEach((item, i) => {
+                // Menampilkan format: 1. Nama 089xxx
+                const hpDisplay = item.nomorHp !== "-" ? ` ${item.nomorHp}` : "";
+                waText += `${i + 1}. ${item.nama}${hpDisplay}\n`;
+              });
+            }
             
-            waText += `\n⚠️ *TERLAMBAT (${data.terlambat.length}):*\n`;
-            if (data.terlambat.length === 0) waText += `- Nihil\n`;
-            // Teks nama di sini otomatis sudah membawa label durasi menit dari server backend
-            else data.terlambat.forEach((nama, i) => { waText += `${i + 1}. ${nama}\n`; });
+            waText += `\nMohon sekali amal sholihnya untuk diterobosi via WA/Tlp, ditanyakan apakah dapat menetapi sambung/ijin dengan keterangan bagaimana.\n`;
+            waText += `niatkan karena Allah Semoga Allah paring Aman, selamat lancar Barokah,\n`;
+            waText += `Alhamdulillahi jazakallahu khairoh`;
             
-            waText += `\nDimohon kepada ketua kelompok / pembina terkait untuk segera menindaklanjuti. Terima kasih.`;
+            // 2. SINKRONISASI TUJUAN UTAMA: Mengirimkan langsung ke nomor target ketua kelompok (?phone=628xx)
+            const waLink = `https://api.whatsapp.com/send?phone=${leaderPhone}&text=${encodeURIComponent(waText)}`;
             
-            const waLink = `https://api.whatsapp.com/send?text=${encodeURIComponent(waText)}`;
+            // Pengolahan string untuk tampilan card visual di aplikasi internal HP Admin
+            const displayBelumHadir = data.belumHadir.map(item => `${item.nama} (${item.nomorHp})`).join(', ');
+            const displayTerlambat = data.terlambat.map(item => `${item.nama} (${item.statusDetail.replace('Terlambat ', '')})`).join(', ');
             
             const card = document.createElement('div');
             card.className = "border border-gray-100 rounded-xl p-4 bg-gray-50 space-y-3 shadow-sm";
@@ -241,16 +247,19 @@
             card.innerHTML = `
               <div class="flex justify-between items-center border-b border-gray-200 pb-2">
                 <h4 class="font-semibold text-gray-900 text-sm">${kelompok}</h4>
-                <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">Hadir: ${data.tepatWaktu.length + data.terlambat.length}</span>
+                <div class="flex flex-col items-end">
+                  <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium mb-1">Hadir: ${data.tepatWaktu.length + data.terlambat.length}</span>
+                  <span class="text-[9px] text-gray-400">Target Ketua: ${leaderPhone ? '+' + leaderPhone : 'Belum Set'}</span>
+                </div>
               </div>
               <div class="space-y-2 text-xs">
                 <div>
                   <span class="font-medium text-red-600 block mb-0.5">❌ Belum Hadir (${data.belumHadir.length})</span>
-                  <p class="text-gray-600">${data.belumHadir.length > 0 ? data.belumHadir.join(', ') : '<span class="text-gray-400 italic text-[11px]">Nihil</span>'}</p>
+                  <p class="text-gray-600">${data.belumHadir.length > 0 ? displayBelumHadir : '<span class="text-gray-400 italic text-[11px]">Nihil</span>'}</p>
                 </div>
                 <div>
                   <span class="font-medium text-amber-600 block mb-0.5">⚠️ Terlambat (${data.terlambat.length})</span>
-                  <p class="text-gray-600">${data.terlambat.length > 0 ? data.terlambat.join(', ') : '<span class="text-gray-400 italic text-[11px]">Nihil</span>'}</p>
+                  <p class="text-gray-600">${data.terlambat.length > 0 ? displayTerlambat : '<span class="text-gray-400 italic text-[11px]">Nihil</span>'}</p>
                 </div>
               </div>
               <a href="${waLink}" target="_blank" class="w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-xl text-xs transition-colors shadow-sm block mt-2">
@@ -357,7 +366,6 @@
           const result = await response.json();
 
           if (result.success) {
-            // PENYESUAIAN INDEKS STRING MATCHING: Mendukung teks kelipatan menit dinamis
             const isTelat = result.status.includes("Terlambat");
             
             Swal.fire({
